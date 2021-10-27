@@ -1,6 +1,5 @@
 from flask import Flask, request, Response
 from flask_sqlalchemy import SQLAlchemy
-import mysql.connector
 import json
 
 app = Flask(__name__)
@@ -50,14 +49,15 @@ def retornatodosFilmes():
 
 
 # rota para retornar um filme especifico
-@app.route('/home/<id>', methods=["GET"])
+@app.route('/home/filmes/<id>', methods=["GET"])
 def retornaUmFilme(id):
     filmes_classe = Filmes.query.filter_by(id=id).first()
     filmes_json = filmes_classe.to_json()
     return gera_response(200, "filmes", filmes_json)
 
 
-@app.route('/home/<id>', methods=["DELETE"])
+# rota para deletar um filme
+@app.route('/home/delete/<id>', methods=["DELETE"])
 def deletaFilme(id):
     filmes_classe = Filmes.query.filter_by(id=id).first()
     try:
@@ -67,6 +67,26 @@ def deletaFilme(id):
     except Exception as e:
         print("Erro: ", e)
         return gera_response(200, "filmes", {}, "Erro ao deletar.")
+
+
+# rota para atualizar um filme.
+@app.route('/home/refresh/<id>', methods=["PUT"])
+def atualizaFilme(id):
+    filmes_classe = Filmes.query.filter_by(id=id).first()
+    body = request.get_json()
+    try:
+        if 'filme' in body:
+            filmes_classe.filme = body['filme']
+        if 'ano' in body:
+            filmes_classe.ano = body['ano']
+        if 'genero' in body:
+            filmes_classe.genero = body['genero']
+        db.session.add(filmes_classe)
+        db.session.commit()
+        return gera_response(200, 'Filme', {}, 'Dados atualizados com sucesso.')
+    except Exception as e:
+        print(e)
+        return gera_response(304, 'filmes', {}, 'Os dados não foram atualizados.')
 
 
 def gera_response(status, nome_do_conteudo, conteudo, mensagem=False):
